@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reservas Lobby — Apto 9-6</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
+
+  .header { background: white; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e8e8e4; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .header-title { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+  .header-sub { font-size: 13px; color: #888; margin-top: 2px; }
+  .status { display: flex; align-items: center; gap: 6px; }
+  .status-dot { width: 9px; height: 9px; border-radius: 50%; background: #ccc; flex-shrink: 0; }
+  .status-dot.online { background: #1D9E75; }
+  .status-dot.loading { background: #EF9F27; animation: pulse 1s infinite; }
+  .status-dot.error { background: #E24B4A; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-txt { font-size: 12px; color: #888; }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 1.25rem 1.5rem; background: white; border-bottom: 1px solid #e8e8e4; }
+  .metric { background: #f5f5f0; border-radius: 10px; padding: 0.85rem 1rem; }
+  .metric-label { font-size: 12px; color: #888; margin-bottom: 4px; }
+  .metric-value { font-size: 26px; font-weight: 600; color: #1a1a1a; }
+
+  .content { padding: 1rem 1.25rem; max-width: 900px; margin: 0 auto; }
+
+  .section-title { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.07em; margin: 1.25rem 0 0.6rem; }
+
+  .card { background: white; border: 1px solid #e8e8e4; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 8px; }
+  .card.checkin-hoy { border-left: 4px solid #1D9E75; border-radius: 0 12px 12px 0; }
+  .card.checkin-manana { border-left: 4px solid #378ADD; border-radius: 0 12px 12px 0; }
+  .card.checkout-hoy { border-left: 4px solid #E24B4A; border-radius: 0 12px 12px 0; }
+  .card.activo { border-left: 4px solid #7F77DD; border-radius: 0 12px 12px 0; }
+  .card.proxima { border-left: 4px solid #e8e8e4; border-radius: 0 12px 12px 0; }
+
+  .card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .card-left { display: flex; align-items: center; gap: 10px; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .avatar-green { background: #E1F5EE; color: #0F6E56; }
+  .avatar-blue { background: #E6F1FB; color: #185FA5; }
+  .avatar-red { background: #FCEBEB; color: #A32D2D; }
+  .avatar-purple { background: #EEEDFE; color: #3C3489; }
+  .avatar-gray { background: #f0f0ec; color: #5F5E5A; }
+
+  .nombre { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+  .badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+  .badge-hoy { background: #E1F5EE; color: #0F6E56; }
+  .badge-manana { background: #E6F1FB; color: #185FA5; }
+  .badge-checkout { background: #FCEBEB; color: #A32D2D; }
+  .badge-activo { background: #EEEDFE; color: #3C3489; }
+  .badge-proxima { background: #f0f0ec; color: #5F5E5A; }
+
+  .card-info { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .info-item { display: flex; flex-direction: column; }
+  .info-label { font-size: 11px; color: #999; margin-bottom: 1px; }
+  .info-val { font-size: 14px; font-weight: 600; color: #1a1a1a; }
+
+  .empty { text-align: center; color: #bbb; font-size: 14px; padding: 2.5rem 1rem; background: white; border-radius: 12px; border: 1px solid #e8e8e4; }
+
+  .error-box { background: #FCEBEB; border-radius: 10px; padding: 1rem 1.25rem; color: #A32D2D; font-size: 13px; margin-bottom: 1rem; }
+  .error-box strong { display: block; margin-bottom: 4px; }
+
+  .cal-section { background: white; border: 1px solid #e8e8e4; border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .cal-month-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #1a1a1a; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal-day-header { font-size: 10px; color: #bbb; text-align: center; padding: 4px 0; font-weight: 600; }
+  .cal-cell { aspect-ratio: 1; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #888; }
+  .cal-cell.ocupado { background: #E1F5EE; color: #085041; font-weight: 500; }
+  .cal-cell.checkin { background: #1D9E75; color: white; font-weight: 700; }
+  .cal-cell.checkout-dia { background: #FCEBEB; color: #A32D2D; font-weight: 700; }
+  .cal-cell.hoy-mark { outline: 2px solid #378ADD; outline-offset: -2px; }
+  .cal-cell.otro-mes { color: #ddd; }
+
+  .leyenda { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .leyenda-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; }
+  .leyenda-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  .footer { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 0; margin-top: 0.5rem; }
+  .update-time { font-size: 11px; color: #bbb; }
+  .refresh-btn { font-size: 12px; color: #888; background: white; border: 1px solid #e8e8e4; border-radius: 8px; padding: 6px 14px; cursor: pointer; }
+  .refresh-btn:hover { background: #f5f5f0; }
+
+  @media (max-width: 500px) {
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .metric:last-child { grid-column: span 2; }
+    .card-info { gap: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">Reservas — Apto 9-6</div>
+    <div class="header-sub">Nuevo, acogedor, seguro y elegante · Gym, piscina</div>
+  </div>
+  <div class="status">
+    <div class="status-dot loading" id="dot"></div>
+    <span class="status-txt" id="status-txt">Cargando...</span>
+  </div>
+</div>
+
+<div class="metrics">
+  <div class="metric"><div class="metric-label">Check-ins hoy</div><div class="metric-value" id="m-hoy">—</div></div>
+  <div class="metric"><div class="metric-label">Check-ins mañana</div><div class="metric-value" id="m-manana">—</div></div>
+  <div class="metric"><div class="metric-label">Huéspedes activos</div><div class="metric-value" id="m-activos">—</div></div>
+</div>
+
+<div class="content" id="content">
+  <div style="text-align:center;padding:3rem;color:#bbb;font-size:14px;">Cargando reservas...</div>
+</div>
+
+<script>
+const ICAL_URL = "https://www.airbnb.com.sv/calendar/ical/1375694504987769203.ics?t=64192c66b20844938a1194ed65e3073b";
+const PROXIES = [
+  "https://api.allorigins.win/get?url=",
+  "https://corsproxy.io/?",
+  "https://cors-anywhere.herokuapp.com/"
+];
+
+function parseICS(text) {
+  const events = [];
+  const blocks = text.split("BEGIN:VEVENT");
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i];
+    const get = (key) => {
+      const m = block.match(new RegExp(key + "[^:]*:([^\r\n]+)"));
+      return m ? m[1].trim() : "";
+    };
+    const dtstart = get("DTSTART");
+    const dtend = get("DTEND");
+    const summary = get("SUMMARY") || "Reservado";
+    const desc = get("DESCRIPTION") || "";
+    if (!dtstart || !dtend) continue;
+
+    const parseDate = (s) => {
+      const d = s.replace(/[^0-9]/g,"").substring(0,8);
+      return new Date(parseInt(d.substring(0,4)), parseInt(d.substring(4,6))-1, parseInt(d.substring(6,8)));
+    };
+
+    const start = parseDate(dtstart);
+    const end = parseDate(dtend);
+    const nights = Math.round((end - start) / 86400000);
+    if (nights <= 0) continue;
+
+    let nombre = summary;
+    if (nombre.toLowerCase().includes("not available") || nombre.toLowerCase().includes("airbnb") || nombre.toLowerCase().includes("blocked")) {
+      continue;
+    }
+
+    let personas = "—";
+    const mP = desc.match(/(\d+)\s*(guest|persona|person|huésped)/i);
+    if (mP) personas = mP[1];
+
+    events.push({ nombre, start, end, noches: nights, personas });
+  }
+  return events;
+}
+
+const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const DIAS_FULL = ["dom","lun","mar","mié","jue","vie","sáb"];
+const MESES_FULL = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+function fmt(d) {
+  return DIAS_FULL[d.getDay()] + " " + d.getDate() + " " + MESES[d.getMonth()];
+}
+
+function initials(n) {
+  const p = n.trim().split(/\s+/);
+  return p.length >= 2 ? (p[0][0]+p[1][0]).toUpperCase() : n.substring(0,2).toUpperCase();
+}
+
+function avatarColor(tipo) {
+  if (tipo==="hoy") return "avatar-green";
+  if (tipo==="manana") return "avatar-blue";
+  if (tipo==="checkout") return "avatar-red";
+  if (tipo==="activo") return "avatar-purple";
+  return "avatar-gray";
+}
+
+function cardClass(tipo) {
+  if (tipo==="hoy") return "checkin-hoy";
+  if (tipo==="manana") return "checkin-manana";
+  if (tipo==="checkout") return "checkout-hoy";
+  if (tipo==="activo") return "activo";
+  return "proxima";
+}
+
+function badgeClass(tipo) {
+  if (tipo==="hoy") return "badge-hoy";
+  if (tipo==="manana") return "badge-manana";
+  if (tipo==="checkout") return "badge-checkout";
+  if (tipo==="activo") return "badge-activo";
+  return "badge-proxima";
+}
+
+function cardHTML(e, tipo, label) {
+  return `<div class="card ${cardClass(tipo)}">
+    <div class="card-top">
+      <div class="card-left">
+        <div class="avatar ${avatarColor(tipo)}">${initials(e.nombre)}</div>
+        <div class="nombre">${e.nombre}</div>
+      </div>
+      <span class="badge ${badgeClass(tipo)}">${label}</span>
+    </div>
+    <div class="card-info">
+      <div class="info-item"><span class="info-label">Ingreso</span><span class="info-val">${fmt(e.start)}</span></div>
+      <div class="info-item"><span class="info-label">Salida</span><span class="info-val">${fmt(e.end)}</span></div>
+      <div class="info-item"><span class="info-label">Noches</span><span class="info-val">${e.noches}</span></div>
+      <div class="info-item"><span class="info-label">Personas</span><span class="info-val">${e.personas}</span></div>
+    </div>
+  </div>`;
+}
+
+function renderCalendario(events, hoy) {
+  const year = hoy.getFullYear(), month = hoy.getMonth();
+  const first = new Date(year, month, 1).getDay();
+  const days = new Date(year, month+1, 0).getDate();
+
+  const checkins = new Set(), checkouts = new Set(), ocupados = new Set();
+  events.forEach(e => {
+    checkins.add(e.start.toDateString());
+    checkouts.add(e.end.toDateString());
+    let d = new Date(e.start); d.setDate(d.getDate()+1);
+    while (d < e.end) { ocupados.add(d.toDateString()); d.setDate(d.getDate()+1); }
+  });
+
+  let html = `<div class="cal-section">
+    <div class="cal-month-title">${MESES_FULL[month]} ${year}</div>
+    <div class="leyenda">
+      <div class="leyenda-item"><div class="leyenda-dot" style="background:#1D9E75"></div>Check-in</div>
+      <div class="leyenda-item"><div class="leyenda-dot" style="background:#E1F5EE;border:1px solid #5DCAA5"></div>Ocupado</div>
+      <div class="leyenda-item"><div class="leyenda-dot" style="background:#FCEBEB;border:1px solid #F09595"></div>Check-out</div>
+    </div>
+    <div class="cal-grid">`;
+
+  ["Do","Lu","Ma","Mi","Ju","Vi","Sá"].forEach(d => {
+    html += `<div class="cal-day-header">${d}</div>`;
+  });
+
+  for (let i = 0; i < first; i++) html += `<div class="cal-cell otro-mes"></div>`;
+  for (let d = 1; d <= days; d++) {
+    const fecha = new Date(year, month, d);
+    const ds = fecha.toDateString();
+    let cls = "";
+    if (checkins.has(ds)) cls = "checkin";
+    else if (checkouts.has(ds)) cls = "checkout-dia";
+    else if (ocupados.has(ds)) cls = "ocupado";
+    if (fecha.getTime() === hoy.getTime()) cls += " hoy-mark";
+    html += `<div class="cal-cell ${cls}">${d}</div>`;
+  }
+
+  html += `</div></div>`;
+  return html;
+}
+
+function render(events) {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const manana = new Date(hoy); manana.setDate(manana.getDate()+1);
+
+  const ciHoy = events.filter(e => e.start.getTime() === hoy.getTime());
+  const ciManana = events.filter(e => e.start.getTime() === manana.getTime());
+  const coHoy = events.filter(e => e.end.getTime() === hoy.getTime());
+  const activos = events.filter(e => e.start < hoy && e.end > hoy);
+  const proximas = events.filter(e => e.start > manana).sort((a,b) => a.start-b.start).slice(0,5);
+
+  document.getElementById("m-hoy").textContent = ciHoy.length;
+  document.getElementById("m-manana").textContent = ciManana.length;
+  document.getElementById("m-activos").textContent = activos.length;
+
+  let html = "";
+
+  if (coHoy.length) {
+    html += `<div class="section-title">Check-out hoy</div>`;
+    coHoy.forEach(e => html += cardHTML(e, "checkout", "Sale hoy"));
+  }
+
+  if (ciHoy.length) {
+    html += `<div class="section-title">Check-in hoy</div>`;
+    ciHoy.forEach(e => html += cardHTML(e, "hoy", "Entra hoy"));
+  }
+
+  if (activos.length) {
+    html += `<div class="section-title">Actualmente hospedados</div>`;
+    activos.forEach(e => html += cardHTML(e, "activo", "Sale " + fmt(e.end)));
+  }
+
+  if (ciManana.length) {
+    html += `<div class="section-title">Check-in mañana</div>`;
+    ciManana.forEach(e => html += cardHTML(e, "manana", "Mañana"));
+  }
+
+  if (proximas.length) {
+    html += `<div class="section-title">Próximas reservas</div>`;
+    proximas.forEach(e => html += cardHTML(e, "proxima", fmt(e.start)));
+  }
+
+  if (!html) {
+    html = `<div class="empty">No hay reservas próximas registradas</div>`;
+  }
+
+  html += `<div class="section-title">Calendario del mes</div>`;
+  html += renderCalendario(events, hoy);
+
+  html += `<div class="footer">
+    <span class="update-time" id="last-update"></span>
+    <button class="refresh-btn" onclick="load()">Actualizar ahora</button>
+  </div>`;
+
+  document.getElementById("content").innerHTML = html;
+}
+
+async function fetchWithProxy(proxyBase, url) {
+  const isAllOrigins = proxyBase.includes("allorigins");
+  const fullUrl = isAllOrigins ? proxyBase + encodeURIComponent(url) : proxyBase + url;
+  const res = await fetch(fullUrl);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  if (isAllOrigins) {
+    const j = await res.json();
+    return j.contents;
+  }
+  return await res.text();
+}
+
+async function load() {
+  const dot = document.getElementById("dot");
+  const stxt = document.getElementById("status-txt");
+  dot.className = "status-dot loading";
+  stxt.textContent = "Actualizando...";
+
+  let lastError = null;
+  for (const proxy of PROXIES) {
+    try {
+      const text = await fetchWithProxy(proxy, ICAL_URL);
+      if (!text || !text.includes("BEGIN:VCALENDAR")) throw new Error("Respuesta inválida");
+      const events = parseICS(text);
+      render(events);
+      const now = new Date();
+      const t = now.getHours() + ":" + String(now.getMinutes()).padStart(2,"0");
+      const el = document.getElementById("last-update");
+      if (el) el.textContent = "Actualizado a las " + t;
+      dot.className = "status-dot online";
+      stxt.textContent = "En vivo";
+      return;
+    } catch(e) {
+      lastError = e;
+    }
+  }
+
+  document.getElementById("content").innerHTML = `
+    <div class="error-box">
+      <strong>No se pudo cargar el calendario</strong>
+      ${lastError ? lastError.message : "Error desconocido"} — reintentando en 3 minutos.
+    </div>`;
+  dot.className = "status-dot error";
+  stxt.textContent = "Sin conexión";
+}
+
+load();
+setInterval(load, 3 * 60 * 1000);
+</script>
+
+</body>
+</html>
