@@ -74,35 +74,25 @@ var DIA=['dom','lun','mar','mie','jue','vie','sab'];
 var MESF=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 function pd(s){if(!s)return null;var p=s.replace(/"/g,'').trim().split('-');if(p.length!==3)return null;return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));}
 function fmt(d){return DIA[d.getDay()]+' '+d.getDate()+' '+MES[d.getMonth()];}
-function ini(n){var p=n.trim().split(/s+/);return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.substring(0,2).toUpperCase();}
+function ini(n){var p=n.trim().split(/\s+/);return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.substring(0,2).toUpperCase();}
 function parseCSV(txt){
-  var lines=txt.trim().split('
-');
-  if(lines.length<2)return[];
-  var result=[];
+  var lines=txt.trim().split('\n'),result=[];
   for(var i=1;i<lines.length;i++){
-    var line=lines[i].trim();
-    if(!line)continue;
+    var line=lines[i].trim();if(!line)continue;
     var fields=[],cur='',inQ=false;
-    for(var c=0;c<line.length;c++){
-      if(line[c]==='"'){inQ=!inQ;}
-      else if(line[c]===','&&!inQ){fields.push(cur);cur='';}
-      else{cur+=line[c];}
-    }
+    for(var c=0;c<line.length;c++){if(line[c]==='"'){inQ=!inQ;}else if(line[c]===','&&!inQ){fields.push(cur);cur='';}else{cur+=line[c];}}
     fields.push(cur);
-    var clean=fields.map(function(f){return f.replace(/^"|"$/g,'').trim();});
-    if(clean.length>=7&&clean[2]&&clean[3]){
-      result.push({nombre:clean[1]||'Huesped',ingreso:clean[2],salida:clean[3],noches:clean[4],personas:clean[5],estado:clean[6]});
-    }
+    var cl=fields.map(function(f){return f.replace(/^"|"$/g,'').trim();});
+    if(cl.length>=7&&cl[2]&&cl[3])result.push({nombre:cl[1]||'Huesped',ingreso:cl[2],salida:cl[3],noches:cl[4],personas:cl[5]});
   }
   return result;
 }
 function card(r,t,lb){
   var av={ci_hoy:'av-g',ci_man:'av-b',activo:'av-p',co_hoy:'av-r',proxima:'av-gr'};
   var b={ci_hoy:'bh',ci_man:'bm',activo:'ba',co_hoy:'bc',proxima:'bp'};
-  var pB=(t==='ci_hoy'||t==='activo')?'big':'';
-  var nB=t==='ci_man'?'big-b':'';
-  return '<div class="card '+t.replace(/_/g,'-')+'"><div class="card-top"><div class="card-left"><div class="avatar '+av[t]+'">'+ini(r.nombre)+'</div><div class="nombre">'+r.nombre+'</div></div><span class="badge '+b[t]+'">'+lb+'</span></div><div class="card-info"><div class="info-item"><span class="info-label">Ingreso</span><span class="info-val">'+fmt(pd(r.ingreso))+'</span></div><div class="info-item"><span class="info-label">Salida</span><span class="info-val">'+fmt(pd(r.salida))+'</span></div><div class="info-item"><span class="info-label">Noches</span><span class="info-val '+nB+'">'+r.noches+'</span></div><div class="info-item"><span class="info-label">Personas</span><span class="info-val '+pB+'">'+r.personas+'</span></div></div></div>';
+  var pB=(t==='ci_hoy'||t==='activo')?'big':'',nB=t==='ci_man'?'big-b':'';
+  var ci=pd(r.ingreso),co=pd(r.salida);if(!ci||!co)return'';
+  return '<div class="card '+t.replace(/_/g,'-')+'"><div class="card-top"><div class="card-left"><div class="avatar '+av[t]+'">'+ini(r.nombre)+'</div><div class="nombre">'+r.nombre+'</div></div><span class="badge '+b[t]+'">'+lb+'</span></div><div class="card-info"><div class="info-item"><span class="info-label">Ingreso</span><span class="info-val">'+fmt(ci)+'</span></div><div class="info-item"><span class="info-label">Salida</span><span class="info-val">'+fmt(co)+'</span></div><div class="info-item"><span class="info-label">Noches</span><span class="info-val '+nB+'">'+r.noches+'</span></div><div class="info-item"><span class="info-label">Personas</span><span class="info-val '+pB+'">'+r.personas+'</span></div></div></div>';
 }
 function renderCal(rv,hoy){
   var y=hoy.getFullYear(),m=hoy.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
@@ -115,8 +105,7 @@ function renderCal(rv,hoy){
   return h+'</div></div>';
 }
 function render(rv){
-  var hoy=new Date();hoy.setHours(0,0,0,0);
-  var man=new Date(hoy);man.setDate(man.getDate()+1);
+  var hoy=new Date();hoy.setHours(0,0,0,0);var man=new Date(hoy);man.setDate(man.getDate()+1);
   var coH=rv.filter(function(r){var d=pd(r.salida);return d&&d.getTime()===hoy.getTime();});
   var ciH=rv.filter(function(r){var d=pd(r.ingreso);return d&&d.getTime()===hoy.getTime();});
   var ciM=rv.filter(function(r){var d=pd(r.ingreso);return d&&d.getTime()===man.getTime();});
@@ -134,7 +123,7 @@ function render(rv){
   if(!h)h='<div class="empty">No hay reservas proximas</div>';
   h+='<div class="section-label">Calendario</div>'+renderCal(rv,hoy);
   var now=new Date();
-  h+='<div class="footer">Actualizado: '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+'</div>';
+  h+='<div class="footer">Actualizado: '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+' ('+rv.length+' reservas)</div>';
   document.getElementById('content').innerHTML=h;
 }
 function load(){
@@ -147,7 +136,7 @@ function load(){
       if(!rv.length)throw new Error('Sin datos');
       render(rv);
       document.getElementById('dot').className='dot online';
-      document.getElementById('stxt').textContent='En vivo ('+rv.length+' reservas)';
+      document.getElementById('stxt').textContent='En vivo ('+rv.length+')';
     })
     .catch(function(e){
       document.getElementById('dot').className='dot error';
