@@ -67,85 +67,148 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 <div class="content" id="content"><div class="empty">Cargando reservas...</div></div>
 <script>
-var SID='1l4faXS64R7KUq-BwLD2-Uyz48X3eQH8hZZ1arTliNFw';
-var CURL='https://docs.google.com/spreadsheets/d/'+SID+'/gviz/tq?tqx=out:csv&sheet=Reservas&t=';
-var MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-var DIA=['dom','lun','mar','mie','jue','vie','sab'];
-var MESF=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-function pd(s){if(!s)return null;var p=s.replace(/"/g,'').trim().split('-');if(p.length!==3)return null;return new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]));}
-function fmt(d){return DIA[d.getDay()]+' '+d.getDate()+' '+MES[d.getMonth()];}
-function ini(n){var p=n.trim().split(/\s+/);return p.length>=2?(p[0][0]+p[1][0]).toUpperCase():n.substring(0,2).toUpperCase();}
-function parseCSV(txt){
-  var lines=txt.trim().split('\n'),result=[];
-  for(var i=1;i<lines.length;i++){
-    var line=lines[i].trim();if(!line)continue;
-    var fields=[],cur='',inQ=false;
-    for(var c=0;c<line.length;c++){if(line[c]==='"'){inQ=!inQ;}else if(line[c]===','&&!inQ){fields.push(cur);cur='';}else{cur+=line[c];}}
+var SID = '1l4faXS64R7KUq-BwLD2-Uyz48X3eQH8hZZ1arTliNFw';
+var MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+var DIA = ['dom','lun','mar','mie','jue','vie','sab'];
+var MESF = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function pd(s) {
+  if (!s) return null;
+  var p = s.replace(/"/g, '').trim().split('-');
+  if (p.length !== 3) return null;
+  var y = parseInt(p[0]), m = parseInt(p[1]) - 1, d = parseInt(p[2]);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+  return new Date(y, m, d);
+}
+
+function fmt(d) {
+  return DIA[d.getDay()] + ' ' + d.getDate() + ' ' + MES[d.getMonth()];
+}
+
+function ini(n) {
+  var p = n.trim().split(/\s+/);
+  return p.length >= 2 ? (p[0][0] + p[1][0]).toUpperCase() : n.substring(0, 2).toUpperCase();
+}
+
+function parseCSV(txt) {
+  var lines = txt.trim().split('\n');
+  var result = [];
+  for (var i = 1; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    var fields = [], cur = '', inQ = false;
+    for (var c = 0; c < line.length; c++) {
+      if (line[c] === '"') { inQ = !inQ; }
+      else if (line[c] === ',' && !inQ) { fields.push(cur); cur = ''; }
+      else { cur += line[c]; }
+    }
     fields.push(cur);
-    var cl=fields.map(function(f){return f.replace(/^"|"$/g,'').trim();});
-    if(cl.length>=7&&cl[2]&&cl[3])result.push({nombre:cl[1]||'Huesped',ingreso:cl[2],salida:cl[3],noches:cl[4],personas:cl[5]});
+    var cl = fields.map(function(f) { return f.replace(/^"|"$/g, '').trim(); });
+    if (cl.length >= 5 && cl[2] && cl[3]) {
+      result.push({ nombre: cl[1] || 'Huesped', ingreso: cl[2], salida: cl[3], noches: cl[4], personas: cl[5] || '1' });
+    }
   }
   return result;
 }
-function card(r,t,lb){
-  var av={ci_hoy:'av-g',ci_man:'av-b',activo:'av-p',co_hoy:'av-r',proxima:'av-gr'};
-  var b={ci_hoy:'bh',ci_man:'bm',activo:'ba',co_hoy:'bc',proxima:'bp'};
-  var pB=(t==='ci_hoy'||t==='activo')?'big':'',nB=t==='ci_man'?'big-b':'';
-  var ci=pd(r.ingreso),co=pd(r.salida);if(!ci||!co)return'';
-  return '<div class="card '+t.replace(/_/g,'-')+'"><div class="card-top"><div class="card-left"><div class="avatar '+av[t]+'">'+ini(r.nombre)+'</div><div class="nombre">'+r.nombre+'</div></div><span class="badge '+b[t]+'">'+lb+'</span></div><div class="card-info"><div class="info-item"><span class="info-label">Ingreso</span><span class="info-val">'+fmt(ci)+'</span></div><div class="info-item"><span class="info-label">Salida</span><span class="info-val">'+fmt(co)+'</span></div><div class="info-item"><span class="info-label">Noches</span><span class="info-val '+nB+'">'+r.noches+'</span></div><div class="info-item"><span class="info-label">Personas</span><span class="info-val '+pB+'">'+r.personas+'</span></div></div></div>';
+
+function card(r, t, lb) {
+  var av = { ci_hoy:'av-g', ci_man:'av-b', activo:'av-p', co_hoy:'av-r', proxima:'av-gr' };
+  var b  = { ci_hoy:'bh',   ci_man:'bm',   activo:'ba',   co_hoy:'bc',   proxima:'bp' };
+  var pB = (t === 'ci_hoy' || t === 'activo') ? 'big' : '';
+  var nB = (t === 'ci_man') ? 'big-b' : '';
+  var ci = pd(r.ingreso), co = pd(r.salida);
+  if (!ci || !co) return '';
+  return '<div class="card ' + t.replace(/_/g,'-') + '">' +
+    '<div class="card-top"><div class="card-left">' +
+    '<div class="avatar ' + av[t] + '">' + ini(r.nombre) + '</div>' +
+    '<div class="nombre">' + r.nombre + '</div></div>' +
+    '<span class="badge ' + b[t] + '">' + lb + '</span></div>' +
+    '<div class="card-info">' +
+    '<div class="info-item"><span class="info-label">Ingreso</span><span class="info-val">' + fmt(ci) + '</span></div>' +
+    '<div class="info-item"><span class="info-label">Salida</span><span class="info-val">' + fmt(co) + '</span></div>' +
+    '<div class="info-item"><span class="info-label">Noches</span><span class="info-val ' + nB + '">' + r.noches + '</span></div>' +
+    '<div class="info-item"><span class="info-label">Personas</span><span class="info-val ' + pB + '">' + r.personas + '</span></div>' +
+    '</div></div>';
 }
-function renderCal(rv,hoy){
-  var y=hoy.getFullYear(),m=hoy.getMonth(),first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate();
-  var ci=new Set(),co=new Set(),occ=new Set();
-  rv.forEach(function(r){var s=pd(r.ingreso),e=pd(r.salida);if(!s||!e)return;ci.add(s.toDateString());co.add(e.toDateString());var d=new Date(s);d.setDate(d.getDate()+1);while(d<e){occ.add(d.toDateString());d.setDate(d.getDate()+1);}});
-  var h='<div class="cal-wrap"><div class="cal-title">'+MESF[m]+' '+y+'</div><div class="cal-legend"><div class="cal-li"><div class="cal-ld" style="background:#1D9E75"></div>Check-in</div><div class="cal-li"><div class="cal-ld" style="background:#E1F5EE;border:1px solid #9FE1CB"></div>Ocupado</div><div class="cal-li"><div class="cal-ld" style="background:#FCEBEB;border:1px solid #F5C4B3"></div>Check-out</div></div><div class="cal-grid">';
-  ['Do','Lu','Ma','Mi','Ju','Vi','Sa'].forEach(function(d){h+='<div class="cal-dh">'+d+'</div>';});
-  for(var i=0;i<first;i++)h+='<div class="cal-cell"></div>';
-  for(var d=1;d<=days;d++){var fd=new Date(y,m,d),ds=fd.toDateString();var c='';if(ci.has(ds))c='ci';else if(co.has(ds))c='co';else if(occ.has(ds))c='occ';if(fd.getTime()===hoy.getTime())c+=' hoy';h+='<div class="cal-cell '+c.trim()+'">'+d+'</div>';}
-  return h+'</div></div>';
+
+function renderCal(rv, hoy) {
+  var y = hoy.getFullYear(), m = hoy.getMonth();
+  var first = new Date(y, m, 1).getDay(), days = new Date(y, m+1, 0).getDate();
+  var ci = new Set(), co = new Set(), occ = new Set();
+  rv.forEach(function(r) {
+    var s = pd(r.ingreso), e = pd(r.salida);
+    if (!s || !e) return;
+    ci.add(s.toDateString()); co.add(e.toDateString());
+    var d = new Date(s); d.setDate(d.getDate() + 1);
+    while (d < e) { occ.add(d.toDateString()); d.setDate(d.getDate() + 1); }
+  });
+  var h = '<div class="cal-wrap"><div class="cal-title">' + MESF[m] + ' ' + y + '</div>';
+  h += '<div class="cal-legend">';
+  h += '<div class="cal-li"><div class="cal-ld" style="background:#1D9E75"></div>Check-in</div>';
+  h += '<div class="cal-li"><div class="cal-ld" style="background:#E1F5EE;border:1px solid #9FE1CB"></div>Ocupado</div>';
+  h += '<div class="cal-li"><div class="cal-ld" style="background:#FCEBEB;border:1px solid #F5C4B3"></div>Check-out</div>';
+  h += '</div><div class="cal-grid">';
+  ['Do','Lu','Ma','Mi','Ju','Vi','Sa'].forEach(function(d) { h += '<div class="cal-dh">' + d + '</div>'; });
+  for (var i = 0; i < first; i++) h += '<div class="cal-cell"></div>';
+  for (var d = 1; d <= days; d++) {
+    var fd = new Date(y, m, d), ds = fd.toDateString();
+    var c = '';
+    if (ci.has(ds)) c = 'ci';
+    else if (co.has(ds)) c = 'co';
+    else if (occ.has(ds)) c = 'occ';
+    if (fd.getTime() === hoy.getTime()) c += ' hoy';
+    h += '<div class="cal-cell ' + c.trim() + '">' + d + '</div>';
+  }
+  return h + '</div></div>';
 }
-function render(rv){
-  var hoy=new Date();hoy.setHours(0,0,0,0);var man=new Date(hoy);man.setDate(man.getDate()+1);
-  var coH=rv.filter(function(r){var d=pd(r.salida);return d&&d.getTime()===hoy.getTime();});
-  var ciH=rv.filter(function(r){var d=pd(r.ingreso);return d&&d.getTime()===hoy.getTime();});
-  var ciM=rv.filter(function(r){var d=pd(r.ingreso);return d&&d.getTime()===man.getTime();});
-  var hos=rv.filter(function(r){var s=pd(r.ingreso),e=pd(r.salida);return s&&e&&s<hoy&&e>hoy;});
-  var prx=rv.filter(function(r){var d=pd(r.ingreso);return d&&d>man;}).sort(function(a,b){return pd(a.ingreso)-pd(b.ingreso);}).slice(0,5);
-  document.getElementById('m1').textContent=ciH.length;
-  document.getElementById('m2').textContent=ciM.length;
-  document.getElementById('m3').textContent=hos.length;
-  var h='';
-  if(coH.length){h+='<div class="section-label">Check-out hoy</div>';coH.forEach(function(r){h+=card(r,'co_hoy','Sale hoy');});}
-  if(ciH.length){h+='<div class="section-label">Check-in hoy</div>';ciH.forEach(function(r){h+=card(r,'ci_hoy','Entra hoy');});}
-  if(hos.length){h+='<div class="section-label">Hospedados ahora</div>';hos.forEach(function(r){h+=card(r,'activo','Sale '+fmt(pd(r.salida)));});}
-  if(ciM.length){h+='<div class="section-label">Check-in manana</div>';ciM.forEach(function(r){h+=card(r,'ci_man','Manana');});}
-  if(prx.length){h+='<div class="section-label">Proximas reservas</div>';prx.forEach(function(r){h+=card(r,'proxima',fmt(pd(r.ingreso)));});}
-  if(!h)h='<div class="empty">No hay reservas proximas</div>';
-  h+='<div class="section-label">Calendario</div>'+renderCal(rv,hoy);
-  var now=new Date();
-  h+='<div class="footer">Actualizado: '+now.getHours()+':'+String(now.getMinutes()).padStart(2,'0')+' ('+rv.length+' reservas)</div>';
-  document.getElementById('content').innerHTML=h;
+
+function render(rv) {
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var man = new Date(hoy); man.setDate(man.getDate() + 1);
+  var coH = rv.filter(function(r) { var d = pd(r.salida);  return d && d.getTime() === hoy.getTime(); });
+  var ciH = rv.filter(function(r) { var d = pd(r.ingreso); return d && d.getTime() === hoy.getTime(); });
+  var ciM = rv.filter(function(r) { var d = pd(r.ingreso); return d && d.getTime() === man.getTime(); });
+  var hos = rv.filter(function(r) { var s = pd(r.ingreso), e = pd(r.salida); return s && e && s < hoy && e > hoy; });
+  var prx = rv.filter(function(r) { var d = pd(r.ingreso); return d && d > man; })
+              .sort(function(a,b) { return pd(a.ingreso) - pd(b.ingreso); }).slice(0, 5);
+  document.getElementById('m1').textContent = ciH.length;
+  document.getElementById('m2').textContent = ciM.length;
+  document.getElementById('m3').textContent = hos.length;
+  var h = '';
+  if (coH.length) { h += '<div class="section-label">Check-out hoy</div>'; coH.forEach(function(r) { h += card(r,'co_hoy','Sale hoy'); }); }
+  if (ciH.length) { h += '<div class="section-label">Check-in hoy</div>'; ciH.forEach(function(r) { h += card(r,'ci_hoy','Entra hoy'); }); }
+  if (hos.length) { h += '<div class="section-label">Hospedados ahora</div>'; hos.forEach(function(r) { h += card(r,'activo','Sale '+fmt(pd(r.salida))); }); }
+  if (ciM.length) { h += '<div class="section-label">Check-in manana</div>'; ciM.forEach(function(r) { h += card(r,'ci_man','Manana'); }); }
+  if (prx.length) { h += '<div class="section-label">Proximas reservas</div>'; prx.forEach(function(r) { h += card(r,'proxima',fmt(pd(r.ingreso))); }); }
+  if (!h) h = '<div class="empty">No hay reservas proximas</div>';
+  h += '<div class="section-label">Calendario</div>' + renderCal(rv, hoy);
+  var now = new Date();
+  h += '<div class="footer">Actualizado: ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0') + ' (' + rv.length + ' reservas)</div>';
+  document.getElementById('content').innerHTML = h;
 }
-function load(){
-  document.getElementById('dot').className='dot loading';
-  document.getElementById('stxt').textContent='Actualizando...';
-  fetch(CURL+Date.now())
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.text();})
-    .then(function(txt){
-      var rv=parseCSV(txt);
-      if(!rv.length)throw new Error('Sin datos');
+
+function load() {
+  document.getElementById('dot').className = 'dot loading';
+  document.getElementById('stxt').textContent = 'Actualizando...';
+  var url = 'https://docs.google.com/spreadsheets/d/' + SID + '/gviz/tq?tqx=out:csv&sheet=Reservas&t=' + Date.now();
+  fetch(url)
+    .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(function(txt) {
+      var rv = parseCSV(txt);
+      if (!rv.length) throw new Error('Sin datos');
       render(rv);
-      document.getElementById('dot').className='dot online';
-      document.getElementById('stxt').textContent='En vivo ('+rv.length+')';
+      document.getElementById('dot').className = 'dot online';
+      document.getElementById('stxt').textContent = 'En vivo (' + rv.length + ' reservas)';
     })
-    .catch(function(e){
-      document.getElementById('dot').className='dot error';
-      document.getElementById('stxt').textContent='Error: '+e.message;
-      document.getElementById('content').innerHTML='<div class="empty">Error: '+e.message+'</div>';
+    .catch(function(e) {
+      document.getElementById('dot').className = 'dot error';
+      document.getElementById('stxt').textContent = 'Error: ' + e.message;
+      document.getElementById('content').innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
     });
 }
+
 load();
-setInterval(load,5*60*1000);
+setInterval(load, 5 * 60 * 1000);
 </script>
 </body>
 </html>
