@@ -131,23 +131,10 @@ function card(r, t, lb) {
     '</div></div>';
 }
 
-function renderCal(rv, hoy) {
-  var y = hoy.getFullYear(), m = hoy.getMonth();
+function renderOneMes(rv, y, m, hoy, ci, co, occ) {
   var first = new Date(y, m, 1).getDay(), days = new Date(y, m+1, 0).getDate();
-  var ci = new Set(), co = new Set(), occ = new Set();
-  rv.forEach(function(r) {
-    var s = pd(r.ingreso), e = pd(r.salida);
-    if (!s || !e) return;
-    ci.add(s.toDateString()); co.add(e.toDateString());
-    var d = new Date(s); d.setDate(d.getDate() + 1);
-    while (d < e) { occ.add(d.toDateString()); d.setDate(d.getDate() + 1); }
-  });
-  var h = '<div class="cal-wrap"><div class="cal-title">' + MESF[m] + ' ' + y + '</div>';
-  h += '<div class="cal-legend">';
-  h += '<div class="cal-li"><div class="cal-ld" style="background:#1D9E75"></div>Check-in</div>';
-  h += '<div class="cal-li"><div class="cal-ld" style="background:#E1F5EE;border:1px solid #9FE1CB"></div>Ocupado</div>';
-  h += '<div class="cal-li"><div class="cal-ld" style="background:#FCEBEB;border:1px solid #F5C4B3"></div>Check-out</div>';
-  h += '</div><div class="cal-grid">';
+  var h = '<div class="cal-wrap" style="margin-bottom:8px"><div class="cal-title">' + MESF[m] + ' ' + y + '</div>';
+  h += '<div class="cal-grid">';
   ['Do','Lu','Ma','Mi','Ju','Vi','Sa'].forEach(function(d) { h += '<div class="cal-dh">' + d + '</div>'; });
   for (var i = 0; i < first; i++) h += '<div class="cal-cell"></div>';
   for (var d = 1; d <= days; d++) {
@@ -156,10 +143,32 @@ function renderCal(rv, hoy) {
     if (ci.has(ds)) c = 'ci';
     else if (co.has(ds)) c = 'co';
     else if (occ.has(ds)) c = 'occ';
-    if (fd.getTime() === hoy.getTime()) c += ' hoy';
+    if (hoy && fd.getTime() === hoy.getTime()) c += ' hoy';
     h += '<div class="cal-cell ' + c.trim() + '">' + d + '</div>';
   }
   return h + '</div></div>';
+}
+
+function renderCal(rv, hoy) {
+  var ci = new Set(), co = new Set(), occ = new Set();
+  rv.forEach(function(r) {
+    var s = pd(r.ingreso), e = pd(r.salida);
+    if (!s || !e) return;
+    ci.add(s.toDateString()); co.add(e.toDateString());
+    var d = new Date(s); d.setDate(d.getDate() + 1);
+    while (d < e) { occ.add(d.toDateString()); d.setDate(d.getDate() + 1); }
+  });
+  var h = '<div style="margin-top:4px">';
+  h += '<div class="cal-legend" style="margin-bottom:8px">';
+  h += '<div class="cal-li"><div class="cal-ld" style="background:#1D9E75"></div>Check-in</div>';
+  h += '<div class="cal-li"><div class="cal-ld" style="background:#E1F5EE;border:1px solid #9FE1CB"></div>Ocupado</div>';
+  h += '<div class="cal-li"><div class="cal-ld" style="background:#FCEBEB;border:1px solid #F5C4B3"></div>Check-out</div>';
+  h += '</div>';
+  for (var i = 0; i < 3; i++) {
+    var d = new Date(hoy.getFullYear(), hoy.getMonth() + i, 1);
+    h += renderOneMes(rv, d.getFullYear(), d.getMonth(), i === 0 ? hoy : null, ci, co, occ);
+  }
+  return h + '</div>';
 }
 
 function render(rv) {
@@ -171,7 +180,7 @@ function render(rv) {
   var hos = rv.filter(function(r) { var s = pd(r.ingreso), e = pd(r.salida); return s && e && s < hoy && e > hoy; });
   var prx = rv.filter(function(r) { var d = pd(r.ingreso); return d && d > man; })
               .sort(function(a,b) { return pd(a.ingreso) - pd(b.ingreso); }).slice(0, 5);
-  document.getElementById('m1').textContent = ciH.length;
+  document.getElemntById('m1').textContent = ciH.length;
   document.getElementById('m2').textContent = ciM.length;
   document.getElementById('m3').textContent = hos.length;
   var h = '';
